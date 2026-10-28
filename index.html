@@ -3,10 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PokéStat Finder - Stats, PvP & Profil Offensif</title>
+  <title>PokéStat Pro - Scanner Live PokeMMO</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Moteur OCR pour la détection visuelle en direct de PokeMMO -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
   <style>
     :root {
       --bg: #0b0f19;
@@ -17,6 +21,7 @@
       --primary: #ef4444;
       --primary-hover: #dc2626;
       --gold: #f59e0b;
+      --success: #10b981;
       --atk-phys: #f97316;
       --atk-spe: #a855f7;
     }
@@ -49,7 +54,7 @@
       font-size: 2.5rem;
       font-weight: 800;
       letter-spacing: -0.5px;
-      background: linear-gradient(135deg, #ef4444, #f59e0b, #3b82f6);
+      background: linear-gradient(135deg, #ef4444, #f59e0b, #10b981);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       display: inline-block;
@@ -61,7 +66,80 @@
       font-size: 1.05rem;
     }
 
-    /* RECHERCHE */
+    /* BANNIÈRE SCANNER POKEMMO */
+    .pokemmo-panel {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(21, 29, 46, 0.95));
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      border-radius: 1.25rem;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .pokemmo-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .pokemmo-title {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      font-size: 1.15rem;
+    }
+
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #64748b;
+      display: inline-block;
+      transition: all 0.3s;
+    }
+
+    .pulse-dot.active {
+      background: var(--success);
+      box-shadow: 0 0 12px var(--success);
+      animation: pulseAnim 1.5s infinite;
+    }
+
+    @keyframes pulseAnim {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    .pokemmo-actions {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .live-status-box {
+      background: #0d1322;
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .live-status-box strong {
+      color: #34d399;
+    }
+
+    /* BARRE DE RECHERCHE MANUELLE */
     .search-section {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -96,7 +174,7 @@
     }
 
     .btn {
-      padding: 0.85rem 1.5rem;
+      padding: 0.85rem 1.4rem;
       border: none;
       border-radius: 0.75rem;
       font-weight: 600;
@@ -106,6 +184,22 @@
       align-items: center;
       gap: 0.5rem;
       transition: all 0.2s ease;
+    }
+
+    .btn-live-start {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-live-start:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .btn-live-stop {
+      background: #ef4444;
+      color: white;
     }
 
     .btn-primary {
@@ -188,9 +282,7 @@
       border-radius: 50%;
     }
 
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
-    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
 
     .error-box {
       display: none;
@@ -203,7 +295,7 @@
       text-align: center;
     }
 
-    /* CARTE PRINCIPALE */
+    /* CONTENU DU POKEMON */
     #pokemon-view {
       display: none;
     }
@@ -214,7 +306,7 @@
       border-radius: 1.25rem;
       padding: 2rem;
       display: grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: 300px 1fr;
       gap: 2rem;
       box-shadow: 0 15px 35px rgba(0,0,0,0.3);
       margin-bottom: 2rem;
@@ -261,9 +353,7 @@
       gap: 0.4rem;
     }
 
-    .cry-btn:hover {
-      background: #334366;
-    }
+    .cry-btn:hover { background: #334366; }
 
     .dex-num {
       font-size: 1.1rem;
@@ -284,7 +374,6 @@
       margin-bottom: 0.75rem;
     }
 
-    /* BADGE PROFIL PHYSIQUE / SPÉCIAL */
     .badges-line {
       display: flex;
       gap: 0.75rem;
@@ -294,9 +383,7 @@
     }
 
     @media (max-width: 820px) {
-      .badges-line {
-        justify-content: center;
-      }
+      .badges-line { justify-content: center; }
     }
 
     .types-row {
@@ -318,6 +405,7 @@
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
+    /* BADGE PHYSIQUE / SPÉCIAL */
     .offense-pill {
       display: inline-flex;
       align-items: center;
@@ -330,7 +418,7 @@
       letter-spacing: 0.5px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.35);
       border: 1px solid rgba(255,255,255,0.15);
-      animation: pulseGlow 3s infinite alternate;
+      animation: glowAnim 3s infinite alternate;
     }
 
     .offense-pill.physical {
@@ -353,9 +441,9 @@
       color: #fff;
     }
 
-    @keyframes pulseGlow {
+    @keyframes glowAnim {
       from { filter: drop-shadow(0 0 2px rgba(255,255,255,0.2)); }
-      to { filter: drop-shadow(0 0 8px rgba(255,255,255,0.5)); }
+      to { filter: drop-shadow(0 0 7px rgba(255,255,255,0.45)); }
     }
 
     .poke-desc {
@@ -377,35 +465,19 @@
     }
 
     @media (max-width: 820px) {
-      .poke-meta {
-        justify-content: center;
-      }
+      .poke-meta { justify-content: center; }
     }
 
-    .poke-meta strong {
-      color: #fff;
-    }
+    .poke-meta strong { color: #fff; }
 
-    /* SECTIONS */
-    .grid-sections {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-
-    @media (max-width: 600px) {
-      .grid-sections {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .panel {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
+    /* SECTION PVP */
+    .pvp-section {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(21, 29, 46, 0.95) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.35);
       border-radius: 1.25rem;
       padding: 1.5rem;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      margin-bottom: 2rem;
     }
 
     .panel-title {
@@ -426,136 +498,6 @@
       color: #94a3b8;
     }
 
-    /* DUEL OFFENSIF PHYSIQUE VS SPÉCIAL DANS STATS */
-    .duel-card {
-      background: #0d1322;
-      border: 1px solid var(--card-border);
-      border-radius: 0.75rem;
-      padding: 0.85rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .duel-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      font-weight: 700;
-      margin-bottom: 0.4rem;
-    }
-
-    .duel-bar-wrap {
-      display: flex;
-      height: 10px;
-      border-radius: 6px;
-      overflow: hidden;
-      background: #1e293b;
-      margin-bottom: 0.5rem;
-    }
-
-    .duel-fill-phys {
-      background: var(--atk-phys);
-      transition: width 0.8s ease;
-    }
-
-    .duel-fill-spe {
-      background: var(--atk-spe);
-      transition: width 0.8s ease;
-    }
-
-    .duel-advice {
-      font-size: 0.8rem;
-      color: #cbd5e1;
-      display: flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-
-    .duel-advice strong {
-      color: #facc15;
-    }
-
-    /* STATS BARS */
-    .stat-row {
-      display: grid;
-      grid-template-columns: 110px 45px 1fr;
-      align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 0.75rem;
-      font-size: 0.9rem;
-    }
-
-    .stat-label {
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    .stat-val {
-      font-weight: 700;
-      text-align: right;
-    }
-
-    .stat-bar-bg {
-      background: #0d1322;
-      height: 9px;
-      border-radius: 5px;
-      overflow: hidden;
-    }
-
-    .stat-bar-fill {
-      height: 100%;
-      border-radius: 5px;
-      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .stat-total {
-      margin-top: 1rem;
-      padding-top: 0.75rem;
-      border-top: 1px solid var(--card-border);
-      display: flex;
-      justify-content: space-between;
-      font-weight: 700;
-      font-size: 1rem;
-    }
-
-    /* FAIBLESSES */
-    .weakness-group {
-      margin-bottom: 1rem;
-    }
-
-    .weakness-group-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 0.5rem;
-    }
-
-    .weakness-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.4rem;
-    }
-
-    .multiplier-tag {
-      font-size: 0.75rem;
-      margin-left: 0.35rem;
-      padding: 0.1rem 0.35rem;
-      border-radius: 4px;
-      background: rgba(0,0,0,0.35);
-      font-weight: 800;
-    }
-
-    /* SECTION PVP */
-    .pvp-section {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(21, 29, 46, 0.95) 100%);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      border-radius: 1.25rem;
-      padding: 1.5rem;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-      margin-bottom: 2rem;
-    }
-
     .pvp-meta-banner {
       display: flex;
       gap: 1.5rem;
@@ -565,7 +507,6 @@
       padding: 1rem;
       margin-bottom: 1.25rem;
       flex-wrap: wrap;
-      align-items: center;
       justify-content: space-between;
     }
 
@@ -652,6 +593,102 @@
     .cat-special { background: #3b82f6; color: white; }
     .cat-status { background: #64748b; color: white; }
 
+    /* STATS & FAIBLESSES */
+    .grid-sections {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 600px) {
+      .grid-sections { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    }
+
+    .duel-card {
+      background: #0d1322;
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      padding: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .duel-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+    }
+
+    .duel-bar-wrap {
+      display: flex;
+      height: 10px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #1e293b;
+      margin-bottom: 0.5rem;
+    }
+
+    .duel-fill-phys { background: var(--atk-phys); transition: width 0.8s ease; }
+    .duel-fill-spe { background: var(--atk-spe); transition: width 0.8s ease; }
+
+    .duel-advice {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .duel-advice strong { color: #facc15; }
+
+    .stat-row {
+      display: grid;
+      grid-template-columns: 110px 45px 1fr;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+    }
+
+    .stat-label { color: var(--text-muted); font-weight: 600; }
+    .stat-val { font-weight: 700; text-align: right; }
+    .stat-bar-bg { background: #0d1322; height: 9px; border-radius: 5px; overflow: hidden; }
+    .stat-bar-fill { height: 100%; border-radius: 5px; transition: width 0.8s ease; }
+
+    .stat-total {
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    /* FAIBLESSES */
+    .weakness-group { margin-bottom: 1rem; }
+    .weakness-group-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; }
+    .weakness-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .multiplier-tag {
+      font-size: 0.75rem;
+      margin-left: 0.35rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 4px;
+      background: rgba(0,0,0,0.35);
+      font-weight: 800;
+    }
+
     /* ÉVOLUTIONS */
     .evolution-chain {
       display: flex;
@@ -678,43 +715,13 @@
       transform: translateY(-4px);
     }
 
-    .evo-step img {
-      width: 80px;
-      height: 80px;
-      object-fit: contain;
-    }
+    .evo-step img { width: 80px; height: 80px; object-fit: contain; }
+    .evo-name { font-weight: 700; font-size: 0.95rem; margin-top: 0.5rem; }
+    .evo-arrow { color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+    .evo-arrow span { font-size: 1.25rem; color: var(--primary); }
+    .evo-condition { background: #1e293b; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; color: #94a3b8; max-width: 120px; text-align: center; }
 
-    .evo-name {
-      font-weight: 700;
-      font-size: 0.95rem;
-      margin-top: 0.5rem;
-    }
-
-    .evo-arrow {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.2rem;
-    }
-
-    .evo-arrow span {
-      font-size: 1.25rem;
-      color: var(--primary);
-    }
-
-    .evo-condition {
-      background: #1e293b;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      color: #94a3b8;
-      max-width: 120px;
-      text-align: center;
-    }
-
-    /* TABLEAU ATTAQUES */
+    /* TABLEAU MOVEPOOL */
     .moves-panel {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
@@ -741,11 +748,7 @@
       font-size: 0.9rem;
     }
 
-    .moves-tabs {
-      display: flex;
-      gap: 0.5rem;
-    }
-
+    .moves-tabs { display: flex; gap: 0.5rem; }
     .tab-btn {
       padding: 0.5rem 1rem;
       border-radius: 0.5rem;
@@ -757,10 +760,7 @@
       font-size: 0.85rem;
     }
 
-    .tab-btn.active {
-      background: var(--primary);
-      color: white;
-    }
+    .tab-btn.active { background: var(--primary); color: white; }
 
     .table-wrap {
       max-height: 400px;
@@ -769,52 +769,56 @@
       border: 1px solid var(--card-border);
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 0.9rem;
-    }
-
-    th {
-      background: #0f172a;
-      padding: 0.75rem 1rem;
-      color: var(--text-muted);
-      font-weight: 700;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-
-    td {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-
-    tr:nth-child(even) {
-      background: rgba(255,255,255,0.02);
-    }
-
-    tr:hover {
-      background: rgba(255,255,255,0.05);
-    }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
+    th { background: #0f172a; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 700; position: sticky; top: 0; z-index: 2; }
+    td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    tr:hover { background: rgba(255,255,255,0.05); }
   </style>
 </head>
 <body>
 
   <div class="container">
     <header>
-      <h1>PokéStat Finder</h1>
-      <p>Stats, Faiblesses, Évolutions, Profil Physique/Spécial & Meta PvP</p>
+      <h1>PokéStat Pro • Scanner PokeMMO</h1>
+      <p>Analyse automatique en temps réel de votre adversaire sur PokeMMO</p>
     </header>
 
-    <!-- Zone de recherche -->
+    <!-- BANNIÈRE DE DÉTECTION EN DIRECT POKEMMO -->
+    <div class="pokemmo-panel">
+      <div class="pokemmo-top">
+        <div class="pokemmo-title">
+          <span class="pulse-dot" id="pulse-dot"></span>
+          <span>Scanner Visuel PokeMMO</span>
+        </div>
+
+        <div class="pokemmo-actions">
+          <button class="btn btn-live-start" id="start-scan-btn">
+            🔴 Lancer le Scan PokeMMO
+          </button>
+          <button class="btn btn-live-stop" id="stop-scan-btn" style="display: none;">
+            ⏹ Arrêter le Scan
+          </button>
+        </div>
+      </div>
+
+      <div class="live-status-box" id="live-status-box">
+        <span id="live-status-text">Scanner en veille. Cliquez sur « Lancer le Scan » et choisissez la fenêtre de PokeMMO.</span>
+        <span id="live-last-detection" style="color: var(--text-muted); font-size: 0.8rem;"></span>
+      </div>
+    </div>
+
+    <!-- Éléments cachés de capture vidéo -->
+    <video id="ocr-video" autoplay playsinline style="display: none;"></video>
+    <canvas id="ocr-canvas" style="display: none;"></canvas>
+
+    <!-- Barre de recherche manuelle / Fallback -->
     <div class="search-section">
       <div class="search-box">
         <input 
           type="text" 
           id="poke-input" 
-          placeholder="Ex: Dracaufeu, Lucario, Garchomp, Ectoplasma ou #6..." 
+          placeholder="Ou recherchez manuellement (Dracaufeu, Lucario, #149...)" 
           list="pokemon-suggestions"
           autocomplete="off"
         >
@@ -824,44 +828,44 @@
       </div>
 
       <div class="quick-chips">
-        <span>Suggestions :</span>
+        <span>Favoris PokeMMO :</span>
         <div class="chip" data-name="Dracaufeu">Dracaufeu</div>
         <div class="chip" data-name="Carchacrok">Carchacrok</div>
+        <div class="chip" data-name="Léviator">Léviator</div>
         <div class="chip" data-name="Lucario">Lucario</div>
-        <div class="chip" data-name="Lanssorien">Lanssorien</div>
-        <div class="chip" data-name="Scalpereur">Scalpereur</div>
-        <div class="chip" data-name="Fort-Ivoire">Fort-Ivoire</div>
+        <div class="chip" data-name="Ectoplasma">Ectoplasma</div>
         <div class="chip" data-name="Leuphorie">Leuphorie</div>
+        <div class="chip" data-name="Cizayox">Cizayox</div>
       </div>
     </div>
 
     <!-- Spinner Chargement -->
     <div class="loader" id="loader">
       <div class="pokeball-spinner"></div>
-      <p style="color: var(--text-muted);">Attrapez les données stratégiques...</p>
+      <p style="color: var(--text-muted);" id="loader-text">Récupération des données du combat...</p>
     </div>
 
     <!-- Boîte d'erreur -->
     <div class="error-box" id="error-box"></div>
 
-    <!-- Vue du Pokémon -->
+    <!-- FICHE COMPLÈTE DU POKÉMON -->
     <div id="pokemon-view">
 
-      <!-- Carte Principale (Hero) -->
+      <!-- Hero Card -->
       <div class="hero-card">
         <div class="hero-image-wrap">
-          <img id="poke-img" src="" alt="Pokémon Artwork">
-          <button class="cry-btn" id="cry-btn">🔊 Écouter le cri</button>
+          <img id="poke-img" src="" alt="Artwork">
+          <button class="cry-btn" id="cry-btn">🔊 Cri du Pokémon</button>
         </div>
 
         <div>
           <div class="dex-num" id="poke-id">#0000</div>
           <h2 class="poke-name" id="poke-name">Pokémon</h2>
-          <div class="poke-name-en" id="poke-name-en">Nom anglais</div>
+          <div class="poke-name-en" id="poke-name-en">Nom Anglais</div>
           
-          <!-- Badges de Type + Icône Physique / Spécial -->
           <div class="badges-line">
             <div class="types-row" id="poke-types"></div>
+            <!-- Badge Physique / Spécial -->
             <div id="offense-pill-container"></div>
           </div>
 
@@ -875,14 +879,14 @@
         </div>
       </div>
 
-      <!-- SECTION PVP : ATTAQUES LES PLUS JOUÉES EN COMPÉTITION -->
+      <!-- SECTION PVP COMPÉTITIF -->
       <div class="pvp-section">
         <div class="panel-title">
-          <span>🏆 Attaques les Plus Jouées en PvP (Compétitif)</span>
-          <span class="badge-header" id="pvp-source-tag">Smogon & Showdown Gen 9</span>
+          <span>🏆 Attaques les Plus Jouées en PvP (PokeMMO / Showdown)</span>
+          <span class="badge-header">Meta Compétitif</span>
         </div>
 
-        <div class="pvp-meta-banner" id="pvp-meta-banner">
+        <div class="pvp-meta-banner">
           <div class="pvp-meta-item">
             Rôle Tactique
             <strong id="pvp-role">-</strong>
@@ -896,26 +900,24 @@
             <strong id="pvp-abilities">-</strong>
           </div>
           <div class="pvp-meta-item">
-            Téra-Types Compétitifs
+            Téra-Types / Options
             <strong id="pvp-tera">-</strong>
           </div>
         </div>
 
-        <div class="pvp-grid" id="pvp-moves-container">
-          <!-- Cartes d'attaques compétitives générées en JS -->
-        </div>
+        <div class="pvp-grid" id="pvp-moves-container"></div>
       </div>
 
-      <!-- Grille Stats & Faiblesses -->
+      <!-- STATS & FAIBLESSES -->
       <div class="grid-sections">
         
-        <!-- Statistiques de base -->
+        <!-- Panneau des stats -->
         <div class="panel">
           <div class="panel-title">
             <span>📊 Statistiques de Base</span>
           </div>
 
-          <!-- Duel bar Physique vs Spécial -->
+          <!-- Duel Bar Physique vs Spécial -->
           <div class="duel-card">
             <div class="duel-labels">
               <span style="color: var(--atk-phys);">⚔️ Attaque : <span id="duel-atk-val">0</span></span>
@@ -938,7 +940,7 @@
           </div>
         </div>
 
-        <!-- Faiblesses & Sensibilités -->
+        <!-- Sensibilités élémentaires -->
         <div class="panel">
           <div class="panel-title">🛡️ Sensibilités & Faiblesses</div>
           <div id="weakness-container"></div>
@@ -952,10 +954,10 @@
         <div class="evolution-chain" id="evolution-container"></div>
       </div>
 
-      <!-- Attaques apprises complètes -->
+      <!-- Movepool complet -->
       <div class="moves-panel">
         <div class="panel-title">
-          <span>⚔️ Movepool Complet Appris</span>
+          <span>⚔️ Movepool Complet</span>
         </div>
         
         <div class="moves-filter">
@@ -987,7 +989,7 @@
   </div>
 
   <script>
-    // Dictionnaire des Types
+    // Dictionnaire des Types Officiels
     const TYPE_DICT = {
       normal:   { fr: 'Normal',   color: '#9fa19f' },
       fire:     { fr: 'Feu',      color: '#e62829' },
@@ -1018,70 +1020,56 @@
       'speed': { name: 'Vitesse', color: '#eab308' }
     };
 
-    // Base de données pré-intégrée pour les monstres du PvP afin de garantir un affichage instantané
+    // Sets PvP Compétitifs pré-intégrés (PokeMMO / Showdown)
     const POPULAR_PVP_SETS = {
       charizard: {
         role: "Attaquant Spécial / Setup Solaire",
         moves: ["Flamethrower", "Hurricane", "Solar Beam", "Roost", "Focus Blast", "Dragon Dance"],
         items: "Grosses Bottes, Orbe Vie",
         abilities: "Force Soleil, Brasier",
-        tera: "Feu, Vol, Dragon"
+        tera: "Feu, Vol"
       },
       garchomp: {
         role: "Poseur de Pièges / Danse Lames Offensif",
-        moves: ["Earthquake", "Dragon Claw", "Stealth Rock", "Swords Dance", "Spikes", "Stone Edge"],
+        moves: ["Earthquake", "Dragon Claw", "Stealth Rock", "Swords Dance", "Stone Edge", "Fire Blast"],
         items: "Casque Brut, Restes, Orbe Vie",
         abilities: "Peau Dure",
-        tera: "Acier, Fée, Sol"
+        tera: "Acier, Sol"
       },
-      dragapult: {
-        role: "Pivot Ultra-Rapide & Nettoyeur",
-        moves: ["Shadow Ball", "Draco Meteor", "U-turn", "Dragon Darts", "Flamethrower", "Will-O-Wisp"],
-        items: "Bandeau Choix, Lunettes Choix",
-        abilities: "Infiltration, Corps Maudit",
-        tera: "Spectre, Dragon, Fée"
+      gyarados: {
+        role: "Setup Sweeper Danse Draco",
+        moves: ["Dragon Dance", "Waterfall", "Bounce", "Earthquake", "Ice Fang", "Taunt"],
+        items: "Restes, Orbe Vie",
+        abilities: "Intimidation, Impudence",
+        tera: "Vol, Eau"
       },
-      kingambit: {
-        role: "Finisseur Suprême (Late-game Sweeper)",
-        moves: ["Sucker Punch", "Kowtow Cleave", "Iron Head", "Swords Dance", "Low Kick"],
-        items: "Restes, Lunettes Noires",
-        abilities: "Général Suprême",
-        tera: "Ténèbres, Vol, Fée"
-      },
-      greattusk: {
-        role: "Spinner Physique & Tank Offensif",
-        moves: ["Headlong Rush", "Close Combat", "Rapid Spin", "Knock Off", "Ice Spinner", "Stealth Rock"],
-        items: "Énergie Booster, Casque Brut, Restes",
-        abilities: "Paléosynthèse",
-        tera: "Glace, Acier, Sol"
+      scizor: {
+        role: "Nettoyeur Priorité Technicien",
+        moves: ["Bullet Punch", "U-turn", "Swords Dance", "Close Combat", "Roost", "Knock Off"],
+        items: "Bandeau Choix, Orbe Vie",
+        abilities: "Technicien",
+        tera: "Acier, Combat"
       },
       lucario: {
         role: "Sweeper Danse Lames / Machination",
         moves: ["Close Combat", "Extreme Speed", "Meteor Mash", "Swords Dance", "Aura Sphere", "Flash Cannon"],
         items: "Orbe Vie, Ceinture Force",
         abilities: "Attention, Justicier",
-        tera: "Normal, Combat, Acier"
+        tera: "Normal, Combat"
       },
       gengar: {
         role: "Canon Spécial & Poseur de Statuts",
         moves: ["Shadow Ball", "Sludge Bomb", "Focus Blast", "Nasty Plot", "Trick", "Will-O-Wisp"],
         items: "Lunettes Choix, Mouchoir Choix",
         abilities: "Corps Maudit",
-        tera: "Spectre, Fée"
+        tera: "Spectre, Poison"
       },
       blissey: {
         role: "Éponge Spéciale & Cleric / Stall",
-        moves: ["Soft-Boiled", "Seismic Toss", "Stealth Rock", "Thunder Wave", "Toxic", "Heal Bell"],
-        items: "Grosses Bottes, Restes",
+        moves: ["Soft-Boiled", "Seismic Toss", "Stealth Rock", "Thunder Wave", "Toxic", "Aromatherapy"],
+        items: "Restes",
         abilities: "Médic Nature",
-        tera: "Spectre, Ténèbres"
-      },
-      pikachu: {
-        role: "Attaquant Mixte Rapide Balle Lumière",
-        moves: ["Volt Tackle", "Fake Out", "Extreme Speed", "Knock Off", "Thunderbolt", "Grass Knot"],
-        items: "Balle Lumière",
-        abilities: "Paratonnerre",
-        tera: "Vol, Normal, Électrik"
+        tera: "Spectre"
       }
     };
 
@@ -1094,9 +1082,25 @@
       showdownSets: null
     };
 
+    // Mots d'interface PokeMMO à ignorer systématiquement
+    const POKEMMO_IGNORE_WORDS = new Set([
+      "sauvage", "apparait", "apparaît", "sauvages", "combat", "dresseur", "envoie",
+      "ennemi", "adverse", "niveau", "point", "fuite", "sac", "pokemon", "pokeball",
+      "pv", "hp", "lv", "lvl", "exp", "ko", "tour", "vaincu", "attaque", "degats",
+      "menu", "chat", "canal", "equipe", "joueur", "argent", "objet", "baie"
+    ]);
+
     let currentCryUrl = null;
     let currentPokemonMoves = [];
     let currentMoveTab = 'level';
+
+    // Variables pour l'analyse OCR en direct de PokeMMO
+    let ocrWorker = null;
+    let mediaStream = null;
+    let scanInterval = null;
+    let isScanning = false;
+    let isProcessingFrame = false;
+    let lastDetectedName = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       setupListeners();
@@ -1119,9 +1123,7 @@
       });
 
       input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && input.value.trim()) {
-          fetchAndDisplayPokemon(input.value.trim());
-        }
+        if (e.key === 'Enter' && input.value.trim()) fetchAndDisplayPokemon(input.value.trim());
       });
 
       randomBtn.addEventListener('click', () => {
@@ -1130,9 +1132,7 @@
       });
 
       document.querySelectorAll('.chip').forEach(chip => {
-        chip.addEventListener('click', () => {
-          fetchAndDisplayPokemon(chip.getAttribute('data-name'));
-        });
+        chip.addEventListener('click', () => fetchAndDisplayPokemon(chip.getAttribute('data-name')));
       });
 
       cryBtn.addEventListener('click', () => {
@@ -1157,20 +1157,188 @@
         renderMovesTable();
       });
 
-      movesSearch.addEventListener('input', () => {
-        renderMovesTable();
-      });
+      movesSearch.addEventListener('input', () => renderMovesTable());
+
+      // Boutons OCR PokeMMO
+      document.getElementById('start-scan-btn').addEventListener('click', startPokeMMOScanner);
+      document.getElementById('stop-scan-btn').addEventListener('click', stopPokeMMOScanner);
     }
 
+    // ==========================================
+    // MODULE DÉTECTION EN DIRECT POKEMMO (OCR)
+    // ==========================================
+    async function startPokeMMOScanner() {
+      const statusText = document.getElementById('live-status-text');
+      const pulseDot = document.getElementById('pulse-dot');
+
+      try {
+        statusText.innerHTML = "Initialisation du moteur de reconnaissance OCR...";
+        
+        // 1. Initialise le worker Tesseract réutilisable (évite de réallouer de la mémoire)
+        if (!ocrWorker) {
+          ocrWorker = await Tesseract.createWorker('fra+eng');
+        }
+
+        // 2. Demande le partage d'écran de la fenêtre PokeMMO
+        mediaStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { displaySurface: 'window', cursor: 'never' },
+          audio: false
+        });
+
+        const video = document.getElementById('ocr-video');
+        video.srcObject = mediaStream;
+
+        // Mise à jour de l'interface
+        document.getElementById('start-scan-btn').style.display = 'none';
+        document.getElementById('stop-scan-btn').style.display = 'inline-flex';
+        pulseDot.classList.add('active');
+        statusText.innerHTML = "🟢 <strong>Scanner actif</strong> : observation de la fenêtre PokeMMO...";
+
+        isScanning = true;
+
+        // 3. Boucle d'analyse toutes les 1.2 secondes
+        scanInterval = setInterval(async () => {
+          if (!isScanning || isProcessingFrame) return;
+          await processPokeMMOFrame();
+        }, 1200);
+
+        mediaStream.getVideoTracks()[0].onended = stopPokeMMOScanner;
+
+      } catch (err) {
+        console.error("Échec de capture d'écran PokeMMO :", err);
+        statusText.textContent = "Accès refusé. Veuillez sélectionner la fenêtre PokeMMO.";
+        stopPokeMMOScanner();
+      }
+    }
+
+    function stopPokeMMOScanner() {
+      isScanning = false;
+      if (scanInterval) clearInterval(scanInterval);
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+
+      document.getElementById('start-scan-btn').style.display = 'inline-flex';
+      document.getElementById('stop-scan-btn').style.display = 'none';
+      document.getElementById('pulse-dot').classList.remove('active');
+      document.getElementById('live-status-text').textContent = "Scanner arrêté.";
+    }
+
+    async function processPokeMMOFrame() {
+      const video = document.getElementById('ocr-video');
+      const canvas = document.getElementById('ocr-canvas');
+      if (!video.videoWidth || !video.videoHeight) return;
+
+      isProcessingFrame = true;
+
+      // Optimisation de la résolution pour un OCR ultra-rapide (largeur max 1000px)
+      const scale = Math.min(1, 1000 / video.videoWidth);
+      canvas.width = video.videoWidth * scale;
+      canvas.height = video.videoHeight * scale;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      try {
+        const { data: { text } } = await ocrWorker.recognize(canvas);
+        const detected = matchPokemonFromPokeMMO(text);
+
+        if (detected && detected !== lastDetectedName) {
+          lastDetectedName = detected;
+          
+          // Jingle sonore discret de confirmation
+          playChimeNotification();
+
+          // Affichage du statut
+          document.getElementById('live-status-text').innerHTML = `⚔️ <strong>Adversaire détecté sur PokeMMO :</strong> ${detected} !`;
+          document.getElementById('live-last-detection').textContent = `Dernière détection : ${new Date().toLocaleTimeString()}`;
+
+          // Charge instantanément le Pokémon !
+          fetchAndDisplayPokemon(detected);
+        }
+      } catch (err) {
+        console.warn("Erreur lecture frame OCR :", err);
+      } finally {
+        isProcessingFrame = false;
+      }
+    }
+
+    // Filtrage et correspondance spécifique aux textes PokeMMO
+    function matchPokemonFromPokeMMO(rawOcrText) {
+      if (!rawOcrText || rawOcrText.trim().length < 3) return null;
+      if (!cache.tyradexList) return null;
+
+      // Nettoie et extrait les mots candidats
+      const words = rawOcrText
+        .replace(/[^a-zA-ZÀ-ÿ\s]/g, ' ')
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(w => w.length >= 3 && !POKEMMO_IGNORE_WORDS.has(w));
+
+      // 1. Recherche par mot exact en Français ou en Anglais
+      for (const word of words) {
+        const exact = cache.tyradexList.find(p => 
+          p.name.fr.toLowerCase() === word ||
+          p.name.en?.toLowerCase() === word
+        );
+        if (exact) return exact.name.fr;
+      }
+
+      // 2. Tolérance aux erreurs de lecture OCR sur les polices rétro (Levenshtein <= 1)
+      for (const word of words) {
+        if (word.length < 4) continue;
+        for (const p of cache.tyradexList) {
+          const fr = p.name.fr.toLowerCase();
+          if (Math.abs(fr.length - word.length) <= 1 && levenshtein(fr, word) <= 1) {
+            return p.name.fr;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function levenshtein(a, b) {
+      const m = Array.from({ length: a.length + 1 }, () => []);
+      for (let i = 0; i <= a.length; i++) m[i][0] = i;
+      for (let j = 0; j <= b.length; j++) m[0][j] = j;
+
+      for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + cost);
+        }
+      }
+      return m[a.length][b.length];
+    }
+
+    // Son de détection synthétisé (aucun fichier audio externe requis)
+    function playChimeNotification() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08); // A5
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    // ==========================================
+    // CHARGEMENT ET RENDU DES DONNÉES POKÉMON
+    // ==========================================
     async function preloadShowdownSets() {
       try {
         const res = await fetch('https://raw.githubusercontent.com/smogon/pokemon-showdown/master/data/random-battles/gen9/sets.json');
-        if (res.ok) {
-          cache.showdownSets = await res.json();
-        }
-      } catch (err) {
-        console.warn('Showdown datasets différés', err);
-      }
+        if (res.ok) cache.showdownSets = await res.json();
+      } catch (err) {}
     }
 
     async function loadDatalistSuggestions() {
@@ -1209,25 +1377,6 @@
         }
       } catch(e) {}
 
-      try {
-        const gqlQuery = `
-          query searchPokemon($name: String!) {
-            pokemon_v2_pokemonspeciesname(where: {pokemon_v2_language: {name: {_eq: "fr"}}, name: {_ilike: $name}}, limit: 1) {
-              pokemon_species_id
-            }
-          }
-        `;
-        const gqlRes = await fetch('https://beta.pokeapi.co/graphql/v1beta', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: gqlQuery, variables: { name: q } })
-        });
-        const gData = await gqlRes.json();
-        if (gData?.data?.pokemon_v2_pokemonspeciesname?.[0]?.pokemon_species_id) {
-          return gData.data.pokemon_v2_pokemonspeciesname[0].pokemon_species_id;
-        }
-      } catch(e) {}
-
       return q;
     }
 
@@ -1251,7 +1400,7 @@
         showLoading(false);
       } catch (err) {
         console.error(err);
-        showError(err.message || "Erreur lors du chargement du Pokémon.");
+        showError(err.message || "Erreur de chargement du Pokémon.");
         showLoading(false);
       }
     }
@@ -1274,22 +1423,20 @@
       document.getElementById('cry-btn').style.display = currentCryUrl ? 'inline-flex' : 'none';
 
       const frDescObj = species?.flavor_text_entries?.find(f => f.language.name === 'fr');
-      const frDesc = frDescObj ? frDescObj.flavor_text.replace(/[\n\f]/g, ' ') : "Aucune description Pokédex disponible pour cette version.";
+      const frDesc = frDescObj ? frDescObj.flavor_text.replace(/[\n\f]/g, ' ') : "Aucune description Pokédex disponible.";
       document.getElementById('poke-desc').textContent = `« ${frDesc} »`;
 
       document.getElementById('poke-height').textContent = `${(pokemon.height / 10).toFixed(1)} m`;
       document.getElementById('poke-weight').textContent = `${(pokemon.weight / 10).toFixed(1)} kg`;
       document.getElementById('poke-gen').textContent = species?.generation?.name ? species.generation.name.toUpperCase().replace('GENERATION-', 'Génération ') : 'Inconnue';
 
-      // 1. Rendu des Types
+      // 1. Types
       const typesContainer = document.getElementById('poke-types');
       typesContainer.innerHTML = '';
       const pokeTypeNames = pokemon.types.map(t => t.type.name);
-      pokeTypeNames.forEach(tName => {
-        typesContainer.appendChild(createTypeBadge(tName));
-      });
+      pokeTypeNames.forEach(tName => typesContainer.appendChild(createTypeBadge(tName)));
 
-      // 2. Calcul et Rendu du Profil Physique vs Spécial
+      // 2. Profil Physique / Spécial & Jauge duel
       const offenseProfile = computeOffenseProfile(pokemon.stats);
       renderOffenseBadge(offenseProfile);
       renderDuelBar(pokemon.stats, offenseProfile);
@@ -1298,15 +1445,15 @@
       renderStats(pokemon.stats);
       await renderWeaknesses(pokeTypeNames);
 
-      // 4. Section PvP (Attaques compétitives les plus jouées)
-      await renderPvPSection(pokemon, frName);
+      // 4. Section PvP
+      await renderPvPSection(pokemon);
 
-      // 5. Évolutions & Movepool complet
+      // 5. Évolutions & Movepool
       await renderEvolutionChain(species?.evolution_chain?.url, pokemon.id);
       await prepareAndRenderMoves(pokemon.moves);
     }
 
-    // CALCUL DU PROFIL PHYSIQUE VS SPÉCIAL
+    // CALCUL PROFIL PHYSIQUE VS SPÉCIAL
     function computeOffenseProfile(stats) {
       const atk = stats.find(s => s.stat.name === 'attack')?.base_stat || 0;
       const spa = stats.find(s => s.stat.name === 'special-attack')?.base_stat || 0;
@@ -1318,56 +1465,47 @@
       const maxOff = Math.max(atk, spa);
       const maxDef = Math.max(def, spd);
 
-      // Profil Défensif / Stall (ex: Leuphorie, Prédastérie)
       if ((maxDef >= 115 || hp >= 120) && maxOff <= 80) {
         return {
           type: 'defense',
           icon: '🛡️',
           label: 'Profil Défensif (Stall)',
-          shortDesc: 'Rôle défensif prioritaire',
-          verdict: `Mur défensif (${maxDef}) orienté ${diff >= 10 ? 'attaques physiques' : 'attaques spéciales/statut'}.`,
+          verdict: `Mur défensif (${maxDef}) orienté ${diff >= 10 ? 'physique' : 'spécial/statut'}.`,
           nature: diff >= 10 ? 'Malin / Prudent' : 'Assuré / Calme'
         };
       }
 
-      // Attaquant Physique clair
       if (diff >= 15 || (diff > 5 && atk / (spa || 1) >= 1.15)) {
         return {
           type: 'physical',
           icon: '⚔️',
           label: 'Attaquant Physique',
-          shortDesc: `Atk ${atk} > SpA ${spa} (+${diff})`,
-          verdict: `Meilleur en PHYSIQUE (+${diff} pts). Privilégiez les capacités physiques.`,
+          verdict: `Meilleur en PHYSIQUE (+${diff} pts). Privilégiez les attaques physiques.`,
           nature: 'Rigide (+Atk, -SpA) ou Jovial (+Vit, -SpA)'
         };
       }
 
-      // Attaquant Spécial clair
       if (diff <= -15 || (diff < -5 && spa / (atk || 1) >= 1.15)) {
         return {
           type: 'special',
           icon: '🔮',
           label: 'Attaquant Spécial',
-          shortDesc: `SpA ${spa} > Atk ${atk} (+${Math.abs(diff)})`,
-          verdict: `Meilleur en SPÉCIAL (+${Math.abs(diff)} pts). Immunisé aux baisses d'attaque/brûlure.`,
+          verdict: `Meilleur en SPÉCIAL (+${Math.abs(diff)} pts). Immunisé aux baisses de brûlure.`,
           nature: 'Modeste (+SpA, -Atk) ou Timide (+Vit, -Atk)'
         };
       }
 
-      // Mixte / Polyvalent
       return {
         type: 'mixed',
         icon: '⚖️',
         label: 'Attaquant Mixte',
-        shortDesc: `Atk ${atk} ≈ SpA ${spa}`,
-        verdict: `Équilibré Physique / Spécial (écart minime de ${Math.abs(diff)} pts). Très polyvalent.`,
-        nature: 'Naïf / Pressé ou selon la couverture'
+        verdict: `Polyvalent (écart de ${Math.abs(diff)} pts). Fait d'excellents sets mixtes.`,
+        nature: 'Naïf / Pressé ou selon le set'
       };
     }
 
     function renderOffenseBadge(profile) {
-      const container = document.getElementById('offense-pill-container');
-      container.innerHTML = `
+      document.getElementById('offense-pill-container').innerHTML = `
         <div class="offense-pill ${profile.type}" title="${profile.verdict}">
           <span>${profile.icon}</span>
           <span>${profile.label}</span>
@@ -1384,24 +1522,21 @@
 
       const total = atk + spa;
       const physPct = Math.round((atk / total) * 100);
-      const spePct = 100 - physPct;
-
       document.getElementById('duel-fill-phys').style.width = `${physPct}%`;
-      document.getElementById('duel-fill-spe').style.width = `${spePct}%`;
+      document.getElementById('duel-fill-spe').style.width = `${100 - physPct}%`;
 
       document.getElementById('duel-verdict').textContent = profile.verdict;
       document.getElementById('duel-nature').innerHTML = `Natures recommandées : <strong>${profile.nature}</strong>`;
     }
 
-    // SECTION PVP : EXTRACTION DES ATTAQUES LES PLUS JOUÉES
-    async function renderPvPSection(pokemon, frPokemonName) {
+    // SECTION PVP
+    async function renderPvPSection(pokemon) {
       const container = document.getElementById('pvp-moves-container');
-      container.innerHTML = '<span style="color:var(--text-muted)">Analyse du métagame PvP en cours...</span>';
+      container.innerHTML = '<span style="color:var(--text-muted)">Chargement des attaques compétitives...</span>';
 
       const cleanName = pokemon.name.toLowerCase().replace(/[^a-z0-9]/g, '');
       let pvpData = POPULAR_PVP_SETS[cleanName] || null;
 
-      // Recherche dans Showdown Gen 9 si non présent dans le catalogue local
       if (!pvpData && cache.showdownSets && cache.showdownSets[cleanName]) {
         const sEntry = cache.showdownSets[cleanName];
         const allMoves = new Set();
@@ -1425,21 +1560,25 @@
         };
       }
 
-      // Si le Pokémon n'a pas de set de tournoi référencé (ex: sous-évolutions)
       if (!pvpData) {
-        pvpData = deduceOptimalMoveset(pokemon);
+        const topMoves = ["earthquake", "close-combat", "draco-meteor", "shadow-ball", "scald", "flamethrower", "ice-beam", "thunderbolt", "swords-dance", "dragon-dance", "roost", "toxic", "u-turn"];
+        const matches = pokemon.moves.map(m => m.move.name).filter(m => topMoves.includes(m)).slice(0, 5);
+        pvpData = {
+          role: "Set Optimisé (Analytique)",
+          moves: matches.length ? matches.map(m => m.replace(/-/g, ' ')) : ["Earthquake", "Flamethrower", "Protect", "Toxic"],
+          items: "Restes, Orbe Vie",
+          abilities: "Talent principal",
+          tera: "Type STAB ou Défensif"
+        };
       }
 
-      // Mise à jour de la bannière Meta
       document.getElementById('pvp-role').textContent = pvpData.role;
       document.getElementById('pvp-items').textContent = pvpData.items;
       document.getElementById('pvp-abilities').textContent = pvpData.abilities;
       document.getElementById('pvp-tera').textContent = pvpData.tera;
 
-      // Chargement des détails traduits des 4 à 6 attaques
       container.innerHTML = '';
-      const movePromises = pvpData.moves.map(mName => fetchMoveDetailsByShowdownName(mName));
-      const moveDetailsList = await Promise.all(movePromises);
+      const moveDetailsList = await Promise.all(pvpData.moves.map(m => fetchMoveDetailsByShowdownName(m)));
 
       moveDetailsList.forEach(m => {
         const card = document.createElement('div');
@@ -1470,48 +1609,15 @@
       });
     }
 
-    // Fallback intelligent : sélectionne les attaques les plus compétitives du movepool
-    function deduceOptimalMoveset(pokemon) {
-      const topPriorityNames = [
-        "earthquake", "close-combat", "draco-meteor", "shadow-ball", "scald", "flamethrower", 
-        "ice-beam", "thunderbolt", "swords-dance", "dragon-dance", "nasty-plot", "calm-mind", 
-        "stealth-rock", "roost", "recover", "toxic", "will-o-wisp", "u-turn", "knock-off", "protect"
-      ];
-      const available = pokemon.moves.map(m => m.move.name);
-      const matches = topPriorityNames.filter(m => available.includes(m)).slice(0, 5);
-
-      return {
-        role: "Set Optimisé (Analytique)",
-        moves: matches.length ? matches.map(m => m.replace(/-/g, ' ')) : ["Earthquake", "Flamethrower", "Protect", "Toxic"],
-        items: "Restes, Orbe Vie ou Évoluroc",
-        abilities: "Talent principal",
-        tera: "Type STAB ou Défensif (Acier / Fée)"
-      };
-    }
-
     function getMoveTacticalRole(nameEn, damageClass, power) {
       const low = nameEn.toLowerCase();
-      if (["swords dance", "dragon dance", "nasty plot", "calm mind", "quiver dance", "bulk up", "shell smash", "agility"].includes(low)) {
-        return "Setup & Boost (+Stats)";
-      }
-      if (["recover", "roost", "soft-boiled", "slack off", "wish", "protect", "substitute", "synthesis"].includes(low)) {
-        return "Soin / Survie";
-      }
-      if (["u-turn", "volt switch", "flip turn", "parting shot"].includes(low)) {
-        return "Pivot Tactique";
-      }
-      if (["stealth rock", "spikes", "toxic spikes", "defog", "rapid spin", "mortal spin"].includes(low)) {
-        return "Contrôle du Terrain";
-      }
-      if (["will-o-wisp", "thunder wave", "toxic", "spore", "yawn", "taunt", "encore"].includes(low)) {
-        return "Entrave / Statut";
-      }
-      if (["sucker punch", "extreme speed", "bullet punch", "mach punch", "aqua jet", "ice shard", "shadow sneak", "fake out"].includes(low)) {
-        return "Priorité (+1)";
-      }
-      if (power && power >= 100) {
-        return "Gros Dégâts (STAB)";
-      }
+      if (["swords dance", "dragon dance", "nasty plot", "calm mind", "quiver dance", "bulk up", "shell smash"].includes(low)) return "Setup & Boost (+Stats)";
+      if (["recover", "roost", "soft-boiled", "slack off", "wish", "protect", "substitute"].includes(low)) return "Soin / Survie";
+      if (["u-turn", "volt switch", "flip turn", "parting shot"].includes(low)) return "Pivot Tactique";
+      if (["stealth rock", "spikes", "toxic spikes", "defog", "rapid spin"].includes(low)) return "Contrôle du Terrain";
+      if (["will-o-wisp", "thunder wave", "toxic", "spore", "yawn", "taunt"].includes(low)) return "Entrave / Statut";
+      if (["sucker punch", "extreme speed", "bullet punch", "mach punch", "aqua jet", "ice shard", "fake out"].includes(low)) return "Priorité (+1)";
+      if (power && power >= 100) return "Gros Dégâts (STAB)";
       return damageClass === 'status' ? 'Utilitaire' : 'Couverture Offensive';
     }
 
@@ -1537,14 +1643,7 @@
         }
       } catch (e) {}
 
-      return {
-        nameEn: englishName,
-        nameFr: englishName,
-        type: 'normal',
-        power: null,
-        accuracy: null,
-        damageClass: 'physical'
-      };
+      return { nameEn: englishName, nameFr: englishName, type: 'normal', power: null, accuracy: null, damageClass: 'physical' };
     }
 
     // STATS
@@ -1564,22 +1663,16 @@
           <span class="stat-label">${conf.name}</span>
           <span class="stat-val">${s.base_stat}</span>
           <div class="stat-bar-bg">
-            <div class="stat-bar-fill" style="width: 0%; background: ${conf.color};" data-width="${pct}%"></div>
+            <div class="stat-bar-fill" style="width: ${pct}%; background: ${conf.color};"></div>
           </div>
         `;
         container.appendChild(row);
       });
 
       document.getElementById('stat-total-val').textContent = total;
-
-      setTimeout(() => {
-        document.querySelectorAll('.stat-bar-fill').forEach(bar => {
-          bar.style.width = bar.getAttribute('data-width');
-        });
-      }, 50);
     }
 
-    // FAIBLESSES ET RÉSISTANCES
+    // FAIBLESSES ET SENSIVILITÉS
     async function renderWeaknesses(pokemonTypes) {
       const container = document.getElementById('weakness-container');
       container.innerHTML = '<span style="color:var(--text-muted)">Calcul des sensibilités...</span>';
@@ -1602,7 +1695,6 @@
       }
 
       const groups = { x4: [], x2: [], x05: [], x025: [], x0: [] };
-
       for (const [type, val] of Object.entries(multipliers)) {
         if (val === 4) groups.x4.push(type);
         else if (val === 2) groups.x2.push(type);
@@ -1612,7 +1704,6 @@
       }
 
       container.innerHTML = '';
-
       function appendGroup(title, list, label, color) {
         if (!list || list.length === 0) return;
         const wrap = document.createElement('div');
@@ -1647,7 +1738,7 @@
       container.innerHTML = '<span style="color:var(--text-muted)">Chargement des évolutions...</span>';
 
       if (!chainUrl) {
-        container.innerHTML = '<span style="color:var(--text-muted)">Aucune chaîne évolutive trouvée.</span>';
+        container.innerHTML = '<span style="color:var(--text-muted)">Aucune évolution connue.</span>';
         return;
       }
 
@@ -1661,13 +1752,10 @@
           if (!node) return;
           const idMatch = node.species.url.match(/\/pokemon-species\/(\d+)\//);
           const id = idMatch ? parseInt(idMatch[1], 10) : null;
-
           stages.push({ id, name: node.species.name, condition });
 
           if (node.evolves_to && node.evolves_to.length > 0) {
-            node.evolves_to.forEach(child => {
-              traverse(child, parseEvolutionDetails(child.evolution_details?.[0]));
-            });
+            node.evolves_to.forEach(child => traverse(child, parseEvolutionDetails(child.evolution_details?.[0])));
           }
         }
 
@@ -1683,10 +1771,7 @@
           if (i > 0) {
             const arrow = document.createElement('div');
             arrow.className = 'evo-arrow';
-            arrow.innerHTML = `
-              <span class="evo-condition">${stage.condition}</span>
-              <span>➔</span>
-            `;
+            arrow.innerHTML = `<span class="evo-condition">${stage.condition}</span><span>➔</span>`;
             container.appendChild(arrow);
           }
 
@@ -1708,10 +1793,7 @@
             if (nameEl) nameEl.textContent = nameFr;
           });
 
-          card.addEventListener('click', () => {
-            fetchAndDisplayPokemon(stage.id);
-          });
-
+          card.addEventListener('click', () => fetchAndDisplayPokemon(stage.id));
           container.appendChild(card);
         }
       } catch (err) {
@@ -1720,13 +1802,12 @@
     }
 
     function parseEvolutionDetails(d) {
-      if (!d) return 'Condition inconnue';
+      if (!d) return 'Condition spéciale';
       const conds = [];
       if (d.min_level) conds.push(`Niveau ${d.min_level}`);
       if (d.item) conds.push(`Objet: ${d.item.name.replace('-', ' ')}`);
       if (d.held_item) conds.push(`Tient: ${d.held_item.name.replace('-', ' ')}`);
       if (d.min_happiness) conds.push(`Bonheur (${d.min_happiness})`);
-      if (d.time_of_day) conds.push(d.time_of_day === 'day' ? 'De jour' : 'De nuit');
       if (d.known_move) conds.push(`Attaque: ${d.known_move.name.replace('-', ' ')}`);
       if (d.trigger?.name === 'trade') conds.push('Échange');
       return conds.length ? conds.join(' + ') : 'Spécial';
@@ -1745,7 +1826,7 @@
       }
     }
 
-    // TABLEAU GLOBAL DES ATTAQUES
+    // MOVEPOOL COMPLET
     async function prepareAndRenderMoves(rawMoves) {
       const tbody = document.getElementById('moves-tbody');
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Chargement du movepool complet...</td></tr>';
