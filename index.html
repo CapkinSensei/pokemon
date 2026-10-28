@@ -55,7 +55,7 @@
     .scanner-monitor { display: none; background: #090d16; border: 1px solid var(--card-border); border-radius: 0.75rem; padding: 0.85rem; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
     .monitor-preview { display: flex; flex-direction: column; gap: 0.3rem; }
     .monitor-preview span { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; }
-    #debug-canvas { height: 48px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #000; image-rendering: pixelated; }
+    #debug-canvas { height: 35px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: #000; image-rendering: pixelated; }
     .monitor-info { flex: 1; min-width: 200px; font-size: 0.88rem; }
     .monitor-info strong { color: #34d399; }
     .monitor-raw { font-family: monospace; font-size: 0.8rem; color: #94a3b8; margin-top: 0.2rem; }
@@ -97,8 +97,6 @@
     .offense-pill.defense { background: linear-gradient(135deg, #059669, #10b981); color: #fff; }
     
     .poke-desc { color: #cbd5e1; font-size: 0.95rem; line-height: 1.5; background: #0e1424; padding: 0.85rem 1rem; border-radius: 0.75rem; border-left: 3px solid var(--primary); margin-bottom: 1rem; }
-    .poke-meta { display: flex; gap: 2rem; font-size: 0.9rem; color: var(--text-muted); }
-    @media (max-width: 820px) { .poke-meta { justify-content: center; } }
     
     /* GRILLES */
     .grid-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 2rem; margin-bottom: 2rem; }
@@ -132,13 +130,6 @@
     .evo-name { font-weight: 700; font-size: 0.95rem; margin-top: 0.5rem; }
     .evo-arrow { color: var(--text-muted); font-size: 0.85rem; display: flex; flex-direction: column; align-items: center; gap: 0.2rem; }
     .evo-arrow span { font-size: 1.25rem; color: var(--primary); }
-    .evo-condition { background: #1e293b; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; color: #94a3b8; max-width: 120px; }
-
-    /* TABLEAU ATTAQUES */
-    .table-wrap { max-height: 400px; overflow-y: auto; border-radius: 0.75rem; border: 1px solid var(--card-border); }
-    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
-    th { background: #0f172a; padding: 0.75rem 1rem; color: var(--text-muted); font-weight: 700; position: sticky; top: 0; }
-    td { padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
   </style>
 </head>
 <body>
@@ -172,7 +163,7 @@
 
       <div class="scanner-monitor" id="scanner-monitor">
         <div class="monitor-preview">
-          <span>Aperçu binarisé (Ce que lit l'IA) :</span>
+          <span>Aperçu binarisé recadré :</span>
           <canvas id="debug-canvas"></canvas>
         </div>
         <div class="monitor-info">
@@ -256,7 +247,6 @@
   </div>
 
   <script>
-    // Dictionnaire de types
     const TYPE_DICT = {
       normal: { fr: 'Normal', color: '#9fa19f' }, fire: { fr: 'Feu', color: '#e62829' }, water: { fr: 'Eau', color: '#2980ef' },
       grass: { fr: 'Plante', color: '#3fa129' }, electric: { fr: 'Électrik', color: '#fac000' }, ice: { fr: 'Glace', color: '#3dcef3' },
@@ -287,7 +277,6 @@
     // 1. GÉNÉRATION DU POKÉDEX LOCAL CACHÉ
     // ==========================================
     async function initLocalPokedex() {
-      // Vérifie si le Pokédex français est déjà sauvegardé dans le navigateur
       const cached = localStorage.getItem('pokemmo_pokedex_fr');
       if (cached) {
         localPokedexFr = JSON.parse(cached);
@@ -297,7 +286,6 @@
 
       console.log("Premier lancement : Téléchargement du Pokédex Français via PokeAPI...");
       try {
-        // Requête GraphQL ultra-rapide pour récupérer TOUS les noms FR d'un coup
         const query = `
           query {
             pokemon_v2_pokemonspeciesname(where: {pokemon_v2_language: {name: {_eq: "fr"}}}, order_by: {pokemon_species_id: asc}) {
@@ -307,21 +295,15 @@
           }
         `;
         const res = await fetch('https://beta.pokeapi.co/graphql/v1beta', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query })
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query })
         });
         const data = await res.json();
         
-        // Formate les données
         localPokedexFr = data.data.pokemon_v2_pokemonspeciesname.map(p => ({
-          id: p.pokemon_species_id,
-          nameFr: p.name
+          id: p.pokemon_species_id, nameFr: p.name
         }));
 
-        // Sauvegarde dans la mémoire du navigateur pour que ce soit instantané les prochaines fois
         localStorage.setItem('pokemmo_pokedex_fr', JSON.stringify(localPokedexFr));
-        console.log(`Succès : Pokédex local généré avec ${localPokedexFr.length} Pokémon.`);
       } catch (err) {
         console.error("Erreur de génération du Pokédex :", err);
       }
@@ -341,7 +323,7 @@
         if (e.key === 'Enter' && input.value.trim()) fetchAndDisplayPokemon(input.value.trim());
       });
       document.getElementById('random-btn').addEventListener('click', () => {
-        const randId = Math.floor(Math.random() * 649) + 1; // PokeMMO = Gen 1 à 5
+        const randId = Math.floor(Math.random() * 649) + 1;
         fetchAndDisplayPokemon(randId);
       });
       document.getElementById('cry-btn').addEventListener('click', () => {
@@ -355,7 +337,7 @@
     }
 
     // ==========================================
-    // 2. OCR ET RECONNAISSANCE LOCALE
+    // 2. OCR ET RECONNAISSANCE LOCALE CIBLÉE
     // ==========================================
     async function startPokeMMOScanner() {
       const statusText = document.getElementById('ocr-status-text');
@@ -411,10 +393,21 @@
       const zone = document.getElementById('scan-zone-select').value;
       let cx, cy, cw, ch;
 
+      // ==========================================
+      // AJUSTEMENT DES COORDONNÉES DU CROP
+      // ==========================================
       if (zone === 'top-left') {
-        cx = Math.floor(vw * 0.10); cy = Math.floor(vh * 0.08); cw = Math.floor(vw * 0.35); ch = Math.floor(vh * 0.18);
+        // CIBLE RESSERRÉE : Uniquement le texte du nom (ignore la barre de vie en dessous)
+        cx = Math.floor(vw * 0.14); // X commence à 14% de l'écran
+        cy = Math.floor(vh * 0.10); // Y commence à 10% de l'écran (juste sous la bannière Route)
+        cw = Math.floor(vw * 0.20); // Largeur réduite à 20%
+        ch = Math.floor(vh * 0.05); // Hauteur ultra-réduite à 5% (englobe le texte uniquement)
       } else if (zone === 'dialogue') {
-        cx = Math.floor(vw * 0.10); cy = Math.floor(vh * 0.65); cw = Math.floor(vw * 0.50); ch = Math.floor(vh * 0.28);
+        // CIBLE RESSERRÉE : Uniquement le texte de la boite (ignore les bords d'interface)
+        cx = Math.floor(vw * 0.05); 
+        cy = Math.floor(vh * 0.75); 
+        cw = Math.floor(vw * 0.40); 
+        ch = Math.floor(vh * 0.12);
       } else {
         cx = 0; cy = 0; cw = vw; ch = vh;
       }
@@ -445,7 +438,6 @@
           if (detectedPokemon.id !== lastDetectedId) {
             lastDetectedId = detectedPokemon.id;
             playChimeNotification();
-            // Grâce au Pokedex local, on envoie directement l'ID à PokeAPI. Zéro erreur possible !
             fetchAndDisplayPokemon(detectedPokemon.id); 
           }
         }
@@ -513,7 +505,7 @@
       try {
         let idToFetch = query;
 
-        // Si la recherche est un texte manuel, on utilise d'abord le Pokédex Local !
+        // Validation manuelle avec fallback sur le Pokedex local
         if (typeof query === 'string' && isNaN(query)) {
           const q = query.toLowerCase().trim();
           const match = localPokedexFr.find(p => p.nameFr.toLowerCase() === q);
@@ -568,6 +560,7 @@
           <span>${offenseProfile.icon} ${offenseProfile.label}</span>
         </div>`;
 
+      // Stats, Faiblesses et Évolutions
       renderStats(pokemon.stats, offenseProfile);
       await renderWeaknesses(pokeTypeNames);
       await renderEvolutionChain(species?.evolution_chain?.url, pokemon.id);
